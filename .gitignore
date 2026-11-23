@@ -127,3 +127,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Project data and saved models (photos are not in the repo)
+data/
+primate_model.keras

@@ -44,7 +44,8 @@ There are two parts:
 - **One fixed split.** It splits each animal's photos once (about 70% train, 20% validation, 10% test, with a fixed seed), so no photo is ever in two sets.
 - **A real test accuracy.** The test photos are used once, after training, and it prints the accuracy and a confusion matrix.
 - **Augmentation.** Random flips, small turns and zoom, applied only while training.
-- **Skips files that are not images**, and saves the trained model as one file.
+- **Skips files that are not images.** It checks each file's content, not just its name, so a text file renamed to `.jpg` is skipped too. Each animal needs at least 3 photos.
+- **Saves the trained model as one file**, and `predict.py` reports a clear error for a missing model or an unreadable photo.
 
 **It has not been run on the original photos**, because I no longer have them, so there are no results for it yet. I checked that the code runs from start to finish on generated stand-in images (plain coloured pictures, not primates), which only shows that it works, not how accurate it would be on real photos.
 
@@ -58,7 +59,16 @@ python predict.py some_photo.jpg --model primate_model.keras
 
 `train.py` prints the split sizes, trains, then prints the test accuracy and saves `primate_model.keras`. `predict.py` prints which animal it thinks is in a photo, with its confidence.
 
-I tested both scripts with Python 3.11, TensorFlow 2.21 and Keras 3.
+To run the tests (they use small generated images, so no photos are needed):
+
+```
+pip install -r requirements-dev.txt
+pytest
+```
+
+The tests cover finding and skipping photos, the split (no photo in two sets, same split for the same seed), the model's output, a short end-to-end training run, and both command-line scripts.
+
+I tested both scripts with Python 3.11, TensorFlow 2.21 and Keras 3. The test suite passes (19 tests). Running the tests may print a NumPy `DeprecationWarning` from Keras; it comes from the library versions, not from this code.
 
 To run the original notebook instead, open `img_classification.ipynb` in Jupyter or VS Code. It imports `imghdr`, which was removed in Python 3.13, so use Python 3.12 or older (I wrote it with 3.9). The last few cells of the notebook load a saved model from paths on my own machine; skip them.
 
