@@ -66,9 +66,11 @@ pip install -r requirements-dev.txt
 pytest
 ```
 
-The tests cover finding and skipping photos, the split (no photo in two sets, same split for the same seed), the model's output, a short end-to-end training run, and both command-line scripts.
+The tests cover finding and skipping photos, the split (no photo in two sets, same split for the same seed), the model's output, a short end-to-end training run, and both command-line scripts. The split and the table format live in `dataset_utils.py`, which needs no TensorFlow, so `tests/test_dataset_utils.py` runs even without the ML packages.
 
-I tested both scripts with Python 3.11, TensorFlow 2.21 and Keras 3. The test suite passes (19 tests). Running the tests may print a NumPy `DeprecationWarning` from Keras; it comes from the library versions, not from this code.
+If TensorFlow or numpy is not installed, `pytest` reports the TensorFlow tests (`tests/test_train_utils.py`) as **skipped**, with the install command as the reason, and still runs the rest. A green run with skips is not a full test run: check that the skip count is 0 after `pip install -r requirements-dev.txt`.
+
+I tested both scripts with Python 3.11, TensorFlow 2.21 and Keras 3. The full suite passes (35 tests). Running the tests may print a NumPy `DeprecationWarning` from Keras; it comes from the library versions, not from this code.
 
 To run the original notebook instead, open `img_classification.ipynb` in Jupyter or VS Code. It imports `imghdr`, which was removed in Python 3.13, so use Python 3.12 or older (I wrote it with 3.9). The last few cells of the notebook load a saved model from paths on my own machine; skip them.
 

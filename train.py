@@ -6,17 +6,14 @@ Expects three folders inside the data folder: chimpanzee, gorilla and orangutan,
 with the photos inside them.
 """
 import argparse
-import random
 from pathlib import Path
 
 import numpy as np
 import tensorflow as tf
 
-CLASSES = ["chimpanzee", "gorilla", "orangutan"]  # labels 0, 1, 2
-IMG_SIZE = (256, 256)
-BATCH = 30
-EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp"}
-MIN_PER_CLASS = 3  # each class needs at least one photo in train, validation and test
+from dataset_utils import (  # noqa: F401  (re-exported for tests / predict.py)
+    BATCH, CLASSES, EXTENSIONS, IMG_SIZE, MIN_PER_CLASS, format_matrix, split,
+)
 
 
 def is_image(path):
@@ -47,25 +44,6 @@ def list_photos(data_dir):
             raise SystemExit(f"No photos found in {folder}")
         photos += [(str(p), label) for p in files]
     return photos
-
-
-def split(photos, seed):
-    """About 70% train, 20% validation, 10% test. The split is made once, inside each
-    class, so every set has all three animals and no photo is in two sets."""
-    rng = random.Random(seed)
-    train, val, test = [], [], []
-    for label in range(len(CLASSES)):
-        group = [p for p in photos if p[1] == label]
-        if len(group) < MIN_PER_CLASS:
-            raise SystemExit(f"{CLASSES[label]} has {len(group)} photo(s); "
-                             f"it needs at least {MIN_PER_CLASS}")
-        rng.shuffle(group)
-        n_test = max(1, int(len(group) * 0.1))
-        n_val = max(1, int(len(group) * 0.2))
-        test += group[:n_test]
-        val += group[n_test:n_test + n_val]
-        train += group[n_test + n_val:]
-    return train, val, test
 
 
 def prepare_image(path):
@@ -117,13 +95,6 @@ def confusion_matrix(model, dataset):
     y_true = np.concatenate([labels.numpy() for _, labels in dataset])
     y_pred = model.predict(dataset, verbose=0).argmax(axis=1)
     return tf.math.confusion_matrix(y_true, y_pred, num_classes=len(CLASSES)).numpy()
-
-
-def format_matrix(matrix):
-    lines = [" " * 12 + "".join(f"{name:>12}" for name in CLASSES)]
-    for name, row in zip(CLASSES, matrix):
-        lines.append(f"{name:<12}" + "".join(f"{count:>12}" for count in row))
-    return "\n".join(lines)
 
 
 def main(argv=None):

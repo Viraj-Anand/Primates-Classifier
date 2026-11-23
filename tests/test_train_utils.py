@@ -4,9 +4,14 @@ from pathlib import Path
 # Make `import train` / `import predict` work with a plain `pytest` run from any folder.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-import numpy as np  # noqa: E402
 import pytest  # noqa: E402
-import tensorflow as tf  # noqa: E402
+
+# These tests need the real ML stack (pip install -r requirements-dev.txt).
+# If it is missing, the whole module is reported as SKIPPED with this reason,
+# and tests/test_dataset_utils.py still runs. The importorskip calls must come
+# before `import predict` / `import train`, because those import TensorFlow.
+np = pytest.importorskip("numpy", reason="needs numpy: pip install -r requirements-dev.txt")
+tf = pytest.importorskip("tensorflow", reason="needs TensorFlow: pip install -r requirements-dev.txt")
 
 import predict  # noqa: E402
 import train  # noqa: E402

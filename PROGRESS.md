@@ -1,6 +1,24 @@
 # Progress report
 
-## Latest pass: test run failure (2026-11-23)
+## Latest pass: sandbox collection error (2026-11-23)
+
+Problem reported: `pytest` (interpreter without numpy/TensorFlow, config `sandbox/pytest_sandbox.ini`) stopped at collection with `ModuleNotFoundError: No module named 'numpy'` in `tests/test_train_utils.py`, which imported numpy and TensorFlow at module level. Nothing ran.
+
+| # | Problem | Fix |
+|---|---------|-----|
+| 1 | Test collection needed numpy/TensorFlow, so a plain `pytest` ran zero tests | `tests/test_train_utils.py` now uses `pytest.importorskip` for numpy and TensorFlow, placed before the `train` / `predict` imports. Without the packages, the module is reported as SKIPPED with a reason that names the install command. |
+| 2 | Pure logic (`split`, `format_matrix`, constants) could only be tested with TensorFlow installed | Moved them to `dataset_utils.py`, which imports only `random`. `train.py` re-imports the names, so `train.split`, `train.CLASSES` etc. still work, and `predict.py` is unchanged. |
+| 3 | The split and table rules had no tests that run without the ML stack | Added `tests/test_dataset_utils.py` (16 tests): split counts per class, disjoint sets covering every photo, every set has every class, reproducibility, too-few-photos error, table layout, and a check that importing `dataset_utils` does not load TensorFlow or numpy. |
+| 4 | `format_matrix` in `train.py` printed float counts as `2.0` (numpy can return floats) | Shared version uses `int(count)`; covered by a test. |
+
+Results:
+- `C:\pv` (full dependencies): `python -m pytest` → **35 passed**, 10 NumPy `DeprecationWarning`s from Keras (library versions, not this code).
+- System Python (TensorFlow install broken, the sandbox-like case): **16 passed, 1 skipped**. The skipped item is the TF test module, with its reason shown.
+- Numpy blocked on purpose (simulated): same result, 16 passed, 1 skipped, no collection error.
+
+Decision: a missing ML package now shows as a SKIP with a reason, not an error. The earlier decision to keep it an error would make a plain `pytest` report nothing useful in an environment without TensorFlow. The TF tests still run in full after `pip install -r requirements-dev.txt`. Check that the skip count is 0 before relying on a green run.
+
+## Previous pass: test run failure (2026-11-23)
 
 Problem reported: `pytest` stopped at collection with `ModuleNotFoundError: No module named 'numpy'`, because the interpreter that ran pytest (the Microsoft Store Python 3.11) did not have the project's dependencies installed.
 
