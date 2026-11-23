@@ -1,6 +1,19 @@
 # Progress report
 
-## Latest pass: review fixes
+## Latest pass: test run failure (2026-11-23)
+
+Problem reported: `pytest` stopped at collection with `ModuleNotFoundError: No module named 'numpy'`, because the interpreter that ran pytest (the Microsoft Store Python 3.11) did not have the project's dependencies installed.
+
+| # | Problem | Fix |
+|---|---------|-----|
+| 1 | Working copy of `tests/test_train_utils.py` had been truncated: 19 of 21 tests were gone, and the hard imports were replaced with `pytest.importorskip`, which would hide a missing dependency as a skip | Restored the committed file with `git checkout`. The hard imports stay, so a missing package is an error, not a skip. The truncated version is kept outside the repo in the session scratchpad. |
+| 2 | Dependencies not installed for the interpreter running pytest | Ran the suite with the existing venv at `C:\pv` (Python 3.11.9, NumPy 2.4.6, TensorFlow 2.21.0, pytest 9.2.0), which has `requirements-dev.txt` installed. |
+
+Result: `python -m pytest -q` in `C:\pv` → **19 passed** (10 NumPy `DeprecationWarning`s from Keras, the same as before).
+
+Setup for tests (also in README): `pip install -r requirements-dev.txt`, then `pytest`.
+
+## Previous pass: review fixes
 
 Review findings and what was done:
 
