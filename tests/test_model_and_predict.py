@@ -1,9 +1,9 @@
-import numpy as np
 import pytest
 
-import predict
-
+np = pytest.importorskip("numpy")
 tf = pytest.importorskip("tensorflow")
+
+import predict  # noqa: E402
 import train  # noqa: E402
 
 
