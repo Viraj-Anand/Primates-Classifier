@@ -1,8 +1,9 @@
-import numpy as np
 import pytest
-from PIL import Image
 
-import dataset_utils as du
+np = pytest.importorskip("numpy")
+Image = pytest.importorskip("PIL.Image")
+
+import dataset_utils as du  # noqa: E402
 
 
 @pytest.fixture
