@@ -1,2 +1,5 @@
 -r requirements.txt
+# listed explicitly so the dataset/split tests can run even if the TensorFlow install is trimmed
+numpy<3
+pillow
 pytest
