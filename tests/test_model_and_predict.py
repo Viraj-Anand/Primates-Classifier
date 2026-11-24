@@ -1,6 +1,6 @@
+import numpy as np
 import pytest
 
-np = pytest.importorskip("numpy")
 tf = pytest.importorskip("tensorflow")
 
 import predict  # noqa: E402
