@@ -1,79 +1,162 @@
 # Primates-Classifier
 
-A small convolutional neural network (CNN) that tells chimpanzees, gorillas and orangutans apart from photos. Built with TensorFlow/Keras.
+A small CNN that tells chimpanzees, gorillas and orangutans apart from photos (TensorFlow/Keras), plus the tooling to check your data, train honestly and see what the model looks at.
 
-There are two parts:
+[![tests](https://github.com/Viraj-Anand/Primates-Classifier/actions/workflows/tests.yml/badge.svg)](https://github.com/Viraj-Anand/Primates-Classifier/actions/workflows/tests.yml)
 
-- **The first experiment**: [img_classification.ipynb](img_classification.ipynb), the notebook I trained and ran.
-- **A cleaner version of the pipeline**: [train.py](train.py) and [predict.py](predict.py), written afterwards to fix problems I found in the notebook (see Limitations).
+**Status:** a learning project. The code is tested; the model has **not** been evaluated on real photos (see below).
 
-## Data
+## Can I trust it?
 
-- 291 photos in three folders: `chimpanzee`, `gorilla` and `orangutan`, collected by hand.
-- The photos are not in this repo, and I no longer have them. To run anything here, put your own images in `data/chimpanzee`, `data/gorilla` and `data/orangutan`.
-- Class numbers: 0 is chimpanzee, 1 is gorilla, 2 is orangutan.
+- **The notebook's 100% accuracy is not trustworthy.** Its split reshuffles on every pass, so training and validation photos mix (details in [Limitations](#limitations)).
+- **`train.py` is the honest pipeline**: one fixed seeded split, near-duplicates kept together, test photos used once at the end.
+- **It has never been run on real photos.** The original 291 photos are gone. Every number below that comes from a run is from *synthetic* coloured images, and says so. The results table stays empty until someone (me, or you) runs it on real data.
 
-## Model
-
-| Layer | Details |
-|---|---|
-| Conv2D | 10 filters, 3 x 3, ReLU |
-| AveragePooling2D | |
-| Conv2D | 20 filters, 3 x 3, ReLU |
-| AveragePooling2D | |
-| Flatten | |
-| Dense | 120 units, ReLU |
-| Dense | 84 units, ReLU |
-| Dense | 3 units, softmax |
-
-9,238,239 parameters. Trained for 20 epochs with the Adam optimiser and sparse categorical cross-entropy. Photos are resized to 256 x 256 and scaled to 0-1.
-
-## Results from the first experiment (the notebook)
-
-- In the notebook, 7 batches of 30 photos (210) were used for training, 2 batches (60) for validation and the last batch (21) for testing.
-- Validation accuracy reached 100% at epoch 6 and stayed at or very close to 100% from there. After epoch 20, training accuracy was 100% and validation accuracy was 100%, with a loss of 0.0012 on both.
-- The notebook shows the model's predictions on 10 test photos, which I checked by eye. I did not calculate an accuracy on the test photos.
-
-## Limitations
-
-- It is a small dataset (291 photos), and the model is trained from scratch.
-- In the notebook, the split takes batches from a dataset that is reshuffled on every pass, so training and validation photos can mix between epochs. The 100% validation accuracy is probably too optimistic.
-
-## What `train.py` changes
-
-- **One fixed split.** It splits each animal's photos once (about 70% train, 20% validation, 10% test, with a fixed seed), so no photo is ever in two sets.
-- **A real test accuracy.** The test photos are used once, after training, and it prints the accuracy and a confusion matrix.
-- **Augmentation.** Random flips, small turns and zoom, applied only while training.
-- **Skips files that are not images.** It checks each file's content, not just its name, so a text file renamed to `.jpg` is skipped too. Each animal needs at least 3 photos.
-- **Saves the trained model as one file**, and `predict.py` reports a clear error for a missing model or an unreadable photo.
-
-**It has not been run on the original photos**, because I no longer have them, so there are no results for it yet. I checked that the code runs from start to finish on generated stand-in images (plain coloured pictures, not primates), which only shows that it works, not how accurate it would be on real photos.
-
-## How to run
+## Quick start
 
 ```
 pip install -r requirements.txt
-python train.py --data data --epochs 20
+python predict.py --demo
+```
+
+`--demo` trains for one epoch on generated stand-in images (coloured noise, **not primates**), then predicts one. It proves the code runs; it says nothing about accuracy. Takes about 12 s on my CPU.
+
+### Use your own photos
+
+Put photos in one folder per class, check them, train, predict:
+
+```
+python train.py --data data --check-data
+python train.py --data data --epochs 20 --save-report reports/run1
 python predict.py some_photo.jpg --model primate_model.keras
 ```
 
-`train.py` prints the split sizes, trains, then prints the test accuracy and saves `primate_model.keras`. `predict.py` prints which animal it thinks is in a photo, with its confidence.
+No photos? `python scripts/build_dataset.py --per-class 100` downloads Creative Commons–licensed, research-grade photos from iNaturalist into `data/` and writes credits to `data/LICENSES.csv`. It takes one photo per observation so the split cannot leak. (Tested live with 3 photos per class; I have not trained on a full download.)
 
-To run the tests (they use small generated images, so no photos are needed):
+### What you should see
+
+Real output from a synthetic `--demo` run (1 epoch; the numbers mean nothing about real accuracy):
 
 ```
-pip install -r requirements-dev.txt
-pytest
+Classes: ['chimpanzee', 'gorilla', 'orangutan']
+300 photos: 210 train, 60 validation, 30 test (0 near-duplicate groups kept together)
+architecture=flatten parameters=9,238,239
+Test accuracy: 0.667 on 30 photos the model never saw
+Rows are the true class, columns are the predicted class:
+                chimpanzee     gorilla   orangutan
+chimpanzee               0           0          10
+gorilla                  0          10           0
+orangutan                0           0          10
 ```
 
-The tests cover finding and skipping photos, the split (no photo in two sets, same split for the same seed), the model's output, a short end-to-end training run, and both command-line scripts. The split and the table format live in `dataset_utils.py`, which needs no TensorFlow, so `tests/test_dataset_utils.py` runs even without the ML packages.
+and `--check-data` on the same folder:
 
-If TensorFlow or numpy is not installed, `pytest` reports the TensorFlow tests (`tests/test_train_utils.py`) as **skipped**, with the install command as the reason, and still runs the rest. A green run with skips is not a full test run: check that the skip count is 0 after `pip install -r requirements-dev.txt`.
+```
+Classes (3, alphabetical = label order):
+  chimpanzee      100 usable photos
+  gorilla         100 usable photos
+  orangutan       100 usable photos
+Total usable photos: 300
+Exact duplicate groups: 0
+Near-duplicate groups (hash distance <= 5): 0
+Result: OK to train.
+```
 
-I tested both scripts with Python 3.11, TensorFlow 2.21 and Keras 3. The full suite passes (35 tests). Running the tests may print a NumPy `DeprecationWarning` from Keras; it comes from the library versions, not from this code.
+`predict.py` on a synthetic image: `gorilla (88%)`. With `--min-confidence 0.99 --top-k 2` it prints `unknown (best guess gorilla - 88%, below threshold)`. `--json` prints `{"prediction": "gorilla", "top": [...]}`. `--explain` saves a Grad-CAM heat-map next to the photo.
 
-To run the original notebook instead, open `img_classification.ipynb` in Jupyter or VS Code. It imports `imghdr`, which was removed in Python 3.13, so use Python 3.12 or older (I wrote it with 3.9). The last few cells of the notebook load a saved model from paths on my own machine; skip them.
+## Flags
 
-## License
+`train.py`
 
-MIT, see [LICENSE](LICENSE).
+| Flag | Meaning |
+|---|---|
+| `--data DIR` | folder with one sub-folder per class (default `data`) |
+| `--epochs N` | default 20 |
+| `--seed N` | drives split and training (default 42); the run header prints seed, versions and git commit |
+| `--model-out FILE` | default `primate_model.keras`; also writes `<model>.classes.json` |
+| `--arch` | `flatten` (original), `gap` (15,039 params), `transfer` (frozen MobileNetV2) |
+| `--check-data` | validate the folder and exit |
+| `--save-report DIR` | write `metrics.json`, `confusion_matrix.png`, `train_log.csv` |
+| `--export-tflite` | also write `<model>.tflite` |
+| `--demo` | 1 epoch on generated stand-in images |
+
+`predict.py`
+
+| Flag | Meaning |
+|---|---|
+| `--model FILE` | default `primate_model.keras` |
+| `--top-k N` | show the N most likely classes |
+| `--min-confidence P` | below P, answer `unknown` (e.g. `0.70`) |
+| `--json` | machine-readable output |
+| `--explain` | save a Grad-CAM overlay |
+| `--source 0` | live webcam (needs `opencv-python`; **written but untested**) |
+| `--demo` | train on stand-in images, then predict one |
+
+## Data format
+
+- Folder name = class name. Classes are discovered **alphabetically** and that order is the label order (saved in the `.classes.json` sidecar, so `predict.py` always agrees with training).
+- Formats: `.jpg .jpeg .png .bmp .webp`. HEIC is not supported. Files are checked by content, so a renamed text file is skipped.
+- At least 3 photos per class (hard minimum); under 30 triggers a warning. Add a 4th folder and retrain: it is picked up automatically.
+
+**How much data do I need?** The original run used 291 photos (about 100 per class) and that is a floor, not a target. With ~100 per class a 10% test split is ~10 photos per class, so one wrong answer moves accuracy by several points. Aim for a few hundred per class, and treat any result on fewer as noisy.
+
+## Results
+
+| Architecture | Photos | Test accuracy (mean of 3 seeds) |
+|---|---|---|
+| flatten | – | *pending: no real-photo run yet* |
+| gap | – | *pending* |
+| transfer | – | *pending* |
+
+Filled in only from real runs.
+
+## Photos that aren't a primate
+
+A softmax always picks one of the three classes, so a photo of a cat is still called "gorilla" with some confidence. `--min-confidence 0.70` turns low-confidence answers into `unknown`. This reduces the problem; it does not solve it, and a confident wrong answer on a non-primate is still possible.
+
+## The model, and why `--arch gap` exists
+
+Conv2D(10) → AvgPool → Conv2D(20) → AvgPool → Flatten → Dense(120) → Dense(84) → Dense(3, softmax); 256 × 256 input scaled to 0–1; 9,238,239 parameters.
+
+**99.9% of those parameters sit in one place**: the Flatten output (76,880 values) feeding Dense(120). That is a lot of capacity to memorise 291 photos. `--arch gap` replaces Flatten with GlobalAveragePooling2D and drops the model to **15,039 parameters**. `--arch transfer` uses a frozen ImageNet MobileNetV2 (downloads weights on first use). I ran both end-to-end on synthetic data only.
+
+## Limitations
+
+- Small data, and the original model was trained from scratch.
+- The notebook takes batches from a dataset that is reshuffled on every pass, so training and validation photos can mix between epochs. Its 100% validation accuracy is probably far too optimistic, and it never computed a test accuracy.
+- The original 291 photos are gone, so the notebook's results cannot be reproduced.
+- Photos from one animal or one session can still look alike; near-duplicate detection catches copies and crops, not "same gorilla, different day".
+- Scope: a hobby classifier for three genera. Don't use it for anything that matters (conservation, species ID, law enforcement).
+
+## FAQ
+
+**Why only three classes?** That is what the first dataset had. Add a folder to add a class.
+**Can I use it on a phone photo?** If it is jpg/png/webp, yes. Convert HEIC first.
+**Why is the demo accuracy 0.667?** One epoch on coloured noise: it learned two of three colours. Ignore it.
+**Does it run on GPU?** TensorFlow uses one if it is available; I only tested on CPU.
+
+## Testing
+
+See [TESTING.md](TESTING.md). 10 tests; CI runs them on Python 3.11 and 3.12.
+
+## Tested with
+
+Python 3.11, TensorFlow 2.21, numpy 2.4, Pillow 13, Windows 11, CPU only. `requirements.txt` allows TensorFlow 2.16–2.21; CI covers Python 3.11 and 3.12 on Ubuntu (the first CI run is the first time I will know that holds).
+
+## The notebook
+
+[notebooks/01_first_experiment.ipynb](notebooks/01_first_experiment.ipynb) is the original experiment, kept for history. It needs Python ≤ 3.12 (`imghdr`), and its last cells load files from my old machine, so skip them.
+
+## Repo map
+
+| Path | What |
+|---|---|
+| `train.py`, `predict.py` | training and prediction CLIs |
+| `dataset_utils.py` | scanning, validation, splitting, demo data (no TensorFlow needed) |
+| `scripts/build_dataset.py` | iNaturalist downloader |
+| `tests/` | pytest suite |
+| `notebooks/` | the first experiment |
+
+## Licence
+
+Code: MIT, see [LICENSE](LICENSE). The licence covers the code only. No photos are included or redistributed; photos from `build_dataset.py` stay under their own Creative Commons licences (listed in `data/LICENSES.csv`).

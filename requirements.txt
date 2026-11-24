@@ -1,3 +1,5 @@
-tensorflow>=2.16
-numpy
+tensorflow>=2.16,<2.22
+numpy<3
+pillow
 matplotlib
+# opencv-python    # only for predict.py --source 0 (webcam)
